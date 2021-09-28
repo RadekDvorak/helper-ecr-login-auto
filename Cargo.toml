@@ -1,0 +1,20 @@
+cargo-features = ["strip"]
+
+[package]
+name = "docker-credential-ecr-login-auto"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+home = "0.5.3"
+tini = "1.2.0"
+regex = { version = "1.5.4" , default-features = false, features = ["std"]}
+anyhow = "1.0.44"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
