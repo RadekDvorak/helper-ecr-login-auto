@@ -70,7 +70,7 @@ fn delegate(
         command.env(ENV_NAME, profile);
     }
 
-    let _ = &command.stdin(Stdio::piped()).args(arguments);
+    command.stdin(Stdio::piped()).args(arguments);
     let child = command.spawn()?;
     child
         .stdin
