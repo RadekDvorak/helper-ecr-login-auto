@@ -33,6 +33,7 @@ jobs:
           args: --release --target=${{ matrix.target }}
 
       - name: Rename
+        if: ${{ matrix.target != 'x86_64-unknown-linux-gnu' }}
         run: mv ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto-${{ matrix.target }}
 
       - name: Release
@@ -42,6 +43,8 @@ jobs:
           draft: true
           prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: false
           files: |
+            ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto
             ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto-${{ matrix.target }}
 
