@@ -8,7 +8,6 @@ name: Release
 jobs:
   build:
     name: Build
-    needs: create_release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
