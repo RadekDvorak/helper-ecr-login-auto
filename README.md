@@ -22,7 +22,7 @@ Omit any `docker-credential-` prefix as it is prepended by docker itself at the 
 Helper-ecr-login-auto reads your `$HOME/.aws/config` and tries to find the appropriate profile when a private ECR 
 image is accessed by docker. It searches `credential_process` and `role_arn` ini keys for a role in the same
 account as the image. If there is a match the profile is exported to the `AWS_PROFILE` environment variable
-and the `ecr-login` credential helper to use.
+and for the `ecr-login` credential helper to use.
 
 If there already is the `AWS_PROFILE` environment variable this helper does not interfere.
 
