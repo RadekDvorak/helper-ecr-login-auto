@@ -21,17 +21,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "docker-credential-ecr-login-auto"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "home",
- "regex",
- "tempfile",
- "tini",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -40,6 +29,17 @@ dependencies = [
  "cfg-if",
  "libc",
  "wasi",
+]
+
+[[package]]
+name = "helper-ecr-login-auto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "home",
+ "regex",
+ "tempfile",
+ "tini",
 ]
 
 [[package]]

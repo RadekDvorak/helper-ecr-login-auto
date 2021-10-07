@@ -1,5 +1,5 @@
-use docker_credential_ecr_login_auto;
-use docker_credential_ecr_login_auto::find_aws_profile;
+use helper_ecr_login_auto;
+use helper_ecr_login_auto::find_aws_profile;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::tempdir;

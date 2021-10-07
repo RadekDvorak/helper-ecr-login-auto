@@ -3,7 +3,7 @@
 use std::env::args;
 use std::io::{self, Read, Write};
 
-use docker_credential_ecr_login_auto::{delegate, find_aws_profile};
+use helper_ecr_login_auto::{delegate, find_aws_profile};
 use home::home_dir;
 
 const STDIN_READ_LIMIT: usize = 1 << 20; // 1MB
