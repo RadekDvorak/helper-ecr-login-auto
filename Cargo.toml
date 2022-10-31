@@ -1,4 +1,4 @@
-cargo-features = ["strip"]
+#cargo-features = ["strip"]
 
 [package]
 name = "helper-ecr-login-auto"

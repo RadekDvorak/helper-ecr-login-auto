@@ -26,6 +26,14 @@ and for the `ecr-login` credential helper to use.
 
 If there already is the `AWS_PROFILE` environment variable this helper does not interfere.
 
+### Customizations
+This application can be controlled using environment variables
+- `ECR_LOGIN_APP` is used to configure the credentials helper. Defaults to `docker-credential-ecr-login`.
+- `ENV_NAME` is used to specify an aws profile name. It defaults to `AWS_PROFILE`, you may choose to use e.g. `AWS_DEFAULT_PROFILE` instead.
+- `ARN_CONFIG_KEY` is not used if aws profile is known explicitly (see `ENV_NAME`). If there is no selected profile, this helper
+looks for an assumable role in records with this ini key. The heuristic expects to find a `arn:aws:iam::NUMERIC_ACCOUNT_ID:role/SOME_ROLE`
+pattern in the value. 
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
