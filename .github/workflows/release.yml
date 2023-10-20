@@ -7,17 +7,23 @@ name: Release
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.platform.os_name }} with rust ${{ matrix.toolchain }}
+    runs-on: ${{ matrix.platform.os }}
     strategy:
       fail-fast: true
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-apple-darwin
+        platform:
+          - os_name: Mac-aarch64
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: docker-credential-ecr-login-auto-darwin-arm64
+          - os_name: Linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: docker-credential-ecr-login-auto-linux-amd64
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -34,8 +40,10 @@ jobs:
           args: --release --target=${{ matrix.target }}
 
       - name: Rename
-        if: ${{ matrix.target != 'x86_64-unknown-linux-gnu' }}
-        run: mv ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto-${{ matrix.target }}
+        run: mv target/${{ matrix.platform.target }}/release/docker-credential-ecr-login-auto target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+
+      - name: Generate SHA-256
+        run: shasum -a 256 target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -46,6 +54,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: false
           files: |
-            ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto
-            ./target/${{ matrix.target }}/release/docker-credential-ecr-login-auto-${{ matrix.target }}
+            target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+            target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
 
