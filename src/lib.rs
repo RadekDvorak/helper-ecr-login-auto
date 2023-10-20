@@ -75,13 +75,11 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
                 matches!(ini_key.as_str(), "credential_process" | "role_arn" | "vegas_role_arn" )
             };
 
-            if is_key_found {
-                if cred_proc.is_match(value) {
-                    let trimmed = section_name
-                        .strip_prefix("profile ")
-                        .unwrap_or(section_name);
-                    return Some(trimmed);
-                }
+            if is_key_found && cred_proc.is_match(value) {
+                let trimmed = section_name
+                    .strip_prefix("profile ")
+                    .unwrap_or(section_name);
+                return Some(trimmed);
             }
         }
     }
