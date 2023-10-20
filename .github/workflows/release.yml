@@ -7,7 +7,7 @@ name: Release
 
 jobs:
   build:
-    name: Build ${{ matrix.platform.os_name }} with rust ${{ matrix.toolchain }}
+    name: Build ${{ matrix.platform.os_name }}
     runs-on: ${{ matrix.platform.os }}
     strategy:
       fail-fast: true
@@ -29,7 +29,7 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly
-          target: ${{ matrix.target }}
+          target: ${{ matrix.platform.target }}
           override: true
 
       - name: Compile
@@ -37,7 +37,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --target=${{ matrix.target }}
+          args: --release --target=${{ matrix.platform.target }}
 
       - name: Rename
         run: mv target/${{ matrix.platform.target }}/release/docker-credential-ecr-login-auto target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
