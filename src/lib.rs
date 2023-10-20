@@ -65,8 +65,8 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
     let cred_proc = Regex::new(&format!(r"arn:aws:iam::{:0>12}:role/", account_id)).unwrap();
     let possible_custom_key = &std::env::var(ARN_CONFIG_KEY).ok();
 
-    for (section_name, section_iter) in conf.iter() {
-        for (ini_key, value) in section_iter {
+    for (section_name, section) in conf.iter() {
+        for (ini_key, value) in section.iter() {
             let is_key_found = if let Some(custom_key) = possible_custom_key {
                 // compare with user selected key
                 custom_key == ini_key
