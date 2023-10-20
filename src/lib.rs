@@ -72,7 +72,10 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
                 custom_key == ini_key
             } else {
                 // compare with default keys
-                matches!(ini_key.as_str(), "credential_process" | "role_arn" | "vegas_role_arn" )
+                matches!(
+                    ini_key.as_str(),
+                    "credential_process" | "role_arn" | "vegas_role_arn"
+                )
             };
 
             if is_key_found && cred_proc.is_match(value) {
