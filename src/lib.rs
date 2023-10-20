@@ -67,7 +67,7 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
 
     for (section_name, section_iter) in conf.iter() {
         for (ini_key, value) in section_iter {
-            let is_key_matched = if let Some(custom_key) = possible_custom_key {
+            let is_key_found = if let Some(custom_key) = possible_custom_key {
                 // compare with user selected key
                 custom_key == ini_key
             } else {
@@ -75,7 +75,7 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
                 matches!(ini_key.as_str(), "credential_process" | "role_arn" | "vegas_role_arn" )
             };
 
-            if is_key_matched {
+            if is_key_found {
                 if cred_proc.is_match(value) {
                     let trimmed = section_name
                         .strip_prefix("profile ")
