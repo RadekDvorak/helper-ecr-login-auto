@@ -91,7 +91,7 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
 }
 
 fn find_expected_account_id(stdin: &str) -> Option<u64> {
-    let ecr = regex::Regex::new(r"^([0-9]+)\.dkr\.ecr\.[^\.]+\.amazonaws\.com").unwrap();
+    let ecr = regex::Regex::new(r"^([0-9]+)\.dkr\.ecr\.[^.]+\.amazonaws\.com").unwrap();
     let ecr_captures = ecr.captures(stdin);
 
     ecr_captures
