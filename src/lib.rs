@@ -1,15 +1,14 @@
-#![feature(exit_status_error)]
-
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
 
 use regex::Regex;
-use std::path::PathBuf;
 use tini::Ini;
 
 const ECR_LOGIN_APP: &str = "docker-credential-ecr-login";
 const ENV_NAME: &str = "AWS_PROFILE";
+const ARN_CONFIG_KEY: &str = "ARN_CONFIG_KEY";
 
 pub fn find_aws_profile<V: Write>(
     stdin_buffer: &str,
@@ -59,26 +58,31 @@ pub fn delegate(
 
     let status = &child.wait_with_output()?;
 
-    match status.status.exit_ok() {
-        Ok(_) => Ok(from_utf8(&status.stdout).map(str::to_owned)?),
-        Err(e) => Err(e.into()),
-    }
+    Ok(from_utf8(&status.stdout).map(str::to_owned)?)
 }
 
 fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
-    let cred_proc = Regex::new(r"arn:aws:iam::([0-9]+):role/").unwrap();
+    let cred_proc = Regex::new(&format!(r"arn:aws:iam::{:0>12}:role/", account_id)).unwrap();
+    let possible_custom_key = &std::env::var(ARN_CONFIG_KEY).ok();
 
-    for (section_name, section_iter) in conf.iter() {
-        for (key, value) in section_iter {
-            match key.as_str() {
-                "credential_process" | "role_arn" => {
-                    if let Some(c) = &cred_proc.captures(value) {
-                        if c[1] == account_id.to_string() {
-                            return section_name.strip_prefix("profile ").or(Some(section_name));
-                        }
-                    }
-                }
-                _ => {}
+    for (section_name, section) in conf.iter() {
+        for (ini_key, value) in section.iter() {
+            let is_key_found = if let Some(custom_key) = possible_custom_key {
+                // compare with user selected key
+                custom_key == ini_key
+            } else {
+                // compare with default keys
+                matches!(
+                    ini_key.as_str(),
+                    "credential_process" | "role_arn" | "vegas_role_arn"
+                )
+            };
+
+            if is_key_found && cred_proc.is_match(value) {
+                let trimmed = section_name
+                    .strip_prefix("profile ")
+                    .unwrap_or(section_name);
+                return Some(trimmed);
             }
         }
     }
@@ -87,7 +91,7 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
 }
 
 fn find_expected_account_id(stdin: &str) -> Option<u64> {
-    let ecr = regex::Regex::new(r"^([0-9]+)\.dkr\.ecr\.[^\.]+\.amazonaws\.com").unwrap();
+    let ecr = regex::Regex::new(r"^([0-9]+)\.dkr\.ecr\.[^.]+\.amazonaws\.com").unwrap();
     let ecr_captures = ecr.captures(stdin);
 
     ecr_captures

@@ -1,5 +1,3 @@
-#![feature(exit_status_error)]
-
 use std::env::args;
 use std::io::{self, Read, Write};
 
