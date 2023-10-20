@@ -62,7 +62,7 @@ pub fn delegate(
 }
 
 fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
-    let cred_proc = Regex::new(&format!(r"arn:aws:iam::{}:role/", account_id)).unwrap();
+    let cred_proc = Regex::new(&format!(r"arn:aws:iam::{:0>12}:role/", account_id)).unwrap();
     let possible_custom_key = &std::env::var(ARN_CONFIG_KEY).ok();
 
     for (section_name, section_iter) in conf.iter() {
@@ -72,7 +72,7 @@ fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
                 custom_key == ini_key
             } else {
                 // compare with default keys
-                matches!(ini_key.as_str(), "credential_process" | "role_arn")
+                matches!(ini_key.as_str(), "credential_process" | "role_arn" | "vegas_role_arn" )
             };
 
             if is_key_matched {
