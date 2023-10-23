@@ -1,8 +1,10 @@
 use std::env::args;
 use std::io::{self, Read, Write};
 
-use helper_ecr_login_auto::{delegate, find_aws_profile};
 use home::home_dir;
+
+use helper_ecr_login_auto::{delegate, find_aws_profile};
+use helper_ecr_login_auto::myenv::RealEnv;
 
 const STDIN_READ_LIMIT: usize = 1 << 20; // 1MB
 
@@ -18,9 +20,13 @@ fn main() -> anyhow::Result<()> {
         STDIN_READ_LIMIT
     );
 
+    let environment = RealEnv {};
+
     let arguments: Vec<String> = args().skip(1).collect();
     let aws_profile = match arguments.first() {
-        Some(v) if v == "get" => find_aws_profile(&stdin_buffer, &mut io::stderr(), home_dir())?,
+        Some(v) if v == "get" => {
+            find_aws_profile(&stdin_buffer, &mut io::stderr(), home_dir(), environment)?
+        }
         _ => None,
     };
 
