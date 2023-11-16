@@ -1,7 +1,9 @@
-use helper_ecr_login_auto;
 use helper_ecr_login_auto::find_aws_profile;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+
+use helper_ecr_login_auto::myenv::MockEnv;
 use tempfile::tempdir;
 
 #[test]
@@ -41,11 +43,13 @@ fn test_find_aws_profile() {
     fs::create_dir(&aws_path).unwrap();
     fs::write(config_path, config).unwrap();
 
+    let mocked_env = MockEnv(HashMap::new());
     let err = Vec::new();
     let profile = find_aws_profile(
         "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
         err,
         Some(PathBuf::from(&home_dir.path())),
+        mocked_env,
     );
 
     assert!(profile.is_ok());

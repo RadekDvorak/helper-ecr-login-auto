@@ -1,3 +1,5 @@
+pub mod myenv;
+
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -6,25 +8,31 @@ use std::str::from_utf8;
 use regex::Regex;
 use tini::Ini;
 
+use myenv::EnvLike;
+
 const ECR_LOGIN_APP: &str = "docker-credential-ecr-login";
 const ENV_NAME: &str = "AWS_PROFILE";
 const ARN_CONFIG_KEY: &str = "ARN_CONFIG_KEY";
 
-pub fn find_aws_profile<V: Write>(
+pub fn find_aws_profile<V: Write, E: EnvLike>(
     stdin_buffer: &str,
     mut err: V,
     home_dir: Option<PathBuf>,
+    environment: E,
 ) -> anyhow::Result<Option<String>> {
     if let Some(account_id) = find_expected_account_id(stdin_buffer) {
+        if let Ok(profile) = environment.var(ENV_NAME) {
+            writeln!(err, "Using the predefined {}={}", ENV_NAME, &profile)?;
+            return Ok(Some(profile));
+        }
+
         if let Some(mut path) = home_dir {
             path.push(".aws");
             path.push("config");
             writeln!(err, "Looking for account_id {:?}", account_id)?;
 
             let conf = tini::Ini::from_file(&path)?;
-            let resolved_profile = std::env::var(ENV_NAME)
-                .ok()
-                .or_else(|| match_profile(account_id, &conf).map(str::to_owned));
+            let resolved_profile = match_profile(account_id, &conf, environment).map(str::to_owned);
 
             if let Some(profile) = resolved_profile {
                 writeln!(err, "Found profile {:?}", &profile)?;
@@ -61,9 +69,9 @@ pub fn delegate(
     Ok(from_utf8(&status.stdout).map(str::to_owned)?)
 }
 
-fn match_profile(account_id: u64, conf: &Ini) -> Option<&str> {
+fn match_profile<E: EnvLike>(account_id: u64, conf: &Ini, environment: E) -> Option<&str> {
     let cred_proc = Regex::new(&format!(r"arn:aws:iam::{:0>12}:role/", account_id)).unwrap();
-    let possible_custom_key = &std::env::var(ARN_CONFIG_KEY).ok();
+    let possible_custom_key = &environment.var(ARN_CONFIG_KEY).ok();
 
     for (section_name, section) in conf.iter() {
         for (ini_key, value) in section.iter() {
