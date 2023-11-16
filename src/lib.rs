@@ -1,18 +1,45 @@
-pub mod myenv;
-
+use regex::Regex;
+use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
-
-use regex::Regex;
 use tini::Ini;
 
 use myenv::EnvLike;
 
+pub mod myenv;
+
 const ECR_LOGIN_APP: &str = "docker-credential-ecr-login";
 const ENV_NAME: &str = "AWS_PROFILE";
 const ARN_CONFIG_KEY: &str = "ARN_CONFIG_KEY";
+
+pub struct AccountID(String);
+
+pub enum AccountIdError {
+    WrongLength,
+    NotOnlyDigits,
+}
+impl AccountID {
+    pub fn try_new(id: impl Into<String> + Display) -> Result<AccountID, AccountIdError> {
+        let typed_id = id.into();
+        if typed_id.len() != 12 {
+            return Err(AccountIdError::WrongLength);
+        }
+
+        if !typed_id.chars().all(|c| c.is_digit(10)) {
+            return Err(AccountIdError::NotOnlyDigits);
+        }
+
+        Ok(AccountID(typed_id))
+    }
+}
+
+impl Display for AccountID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 pub fn find_aws_profile<V: Write, E: EnvLike>(
     stdin_buffer: &str,
@@ -29,9 +56,9 @@ pub fn find_aws_profile<V: Write, E: EnvLike>(
         if let Some(mut path) = home_dir {
             path.push(".aws");
             path.push("config");
-            writeln!(err, "Looking for account_id {:?}", account_id)?;
+            writeln!(err, "Looking for account_id {}", account_id)?;
 
-            let conf = tini::Ini::from_file(&path)?;
+            let conf = Ini::from_file(&path)?;
             let resolved_profile = match_profile(account_id, &conf, environment).map(str::to_owned);
 
             if let Some(profile) = resolved_profile {
@@ -69,8 +96,8 @@ pub fn delegate(
     Ok(from_utf8(&status.stdout).map(str::to_owned)?)
 }
 
-fn match_profile<E: EnvLike>(account_id: u64, conf: &Ini, environment: E) -> Option<&str> {
-    let cred_proc = Regex::new(&format!(r"arn:aws:iam::{:0>12}:role/", account_id)).unwrap();
+fn match_profile<E: EnvLike>(account_id: AccountID, conf: &Ini, environment: E) -> Option<&str> {
+    let cred_proc = Regex::new(&format!(r"arn:aws:iam::{}:role/", account_id)).unwrap();
     let possible_custom_key = &environment.var(ARN_CONFIG_KEY).ok();
 
     for (section_name, section) in conf.iter() {
@@ -98,12 +125,9 @@ fn match_profile<E: EnvLike>(account_id: u64, conf: &Ini, environment: E) -> Opt
     None
 }
 
-fn find_expected_account_id(stdin: &str) -> Option<u64> {
+fn find_expected_account_id(stdin: &str) -> Option<AccountID> {
     let ecr = regex::Regex::new(r"^([0-9]+)\.dkr\.ecr\.[^.]+\.amazonaws\.com").unwrap();
-    let ecr_captures = ecr.captures(stdin);
+    let first_match = ecr.captures(stdin)?.get(1)?;
 
-    ecr_captures
-        .as_ref()
-        .map(|c| c[1].to_owned())
-        .and_then(|c| c.parse::<u64>().ok())
+    AccountID::try_new(first_match.as_str()).ok()
 }
