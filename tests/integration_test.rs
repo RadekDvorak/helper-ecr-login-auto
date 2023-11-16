@@ -59,3 +59,34 @@ fn test_find_aws_profile() {
 
     home_dir.close().unwrap();
 }
+
+#[test]
+fn test_predefined_profile() {
+    let home_dir = tempdir().unwrap();
+    let aws_path = home_dir.path().join(".aws");
+    let config_path = &aws_path.join("config");
+
+    let config = "";
+
+    fs::create_dir(&aws_path).unwrap();
+    fs::write(config_path, config).unwrap();
+
+    let expected_profile_name = "fooo";
+    let mocked_env = MockEnv(HashMap::from([(
+        "AWS_PROFILE".to_owned(),
+        expected_profile_name.to_owned(),
+    )]));
+    let profile = find_aws_profile(
+        "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
+        Vec::new(),
+        Some(PathBuf::from(&home_dir.path())),
+        mocked_env,
+    );
+
+    assert!(profile.is_ok());
+    let ok_profile = profile.unwrap();
+    assert!(ok_profile.is_some());
+    assert_eq!(&ok_profile.unwrap(), expected_profile_name);
+
+    home_dir.close().unwrap();
+}
