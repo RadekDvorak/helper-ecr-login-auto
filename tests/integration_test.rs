@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use helper_ecr_login_auto::find_aws_profile;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use tempfile::tempdir;
 use helper_ecr_login_auto::myenv::MockEnv;
+use tempfile::tempdir;
 
 #[test]
 fn test_find_aws_profile() {

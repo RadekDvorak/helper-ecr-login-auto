@@ -3,8 +3,8 @@ use std::io::{self, Read, Write};
 
 use home::home_dir;
 
-use helper_ecr_login_auto::{delegate, find_aws_profile};
 use helper_ecr_login_auto::myenv::RealEnv;
+use helper_ecr_login_auto::{delegate, find_aws_profile};
 
 const STDIN_READ_LIMIT: usize = 1 << 20; // 1MB
 
