@@ -27,7 +27,7 @@ impl AccountID {
             return Err(AccountIdError::WrongLength);
         }
 
-        if !typed_id.chars().all(|c| c.is_digit(10)) {
+        if !typed_id.chars().all(|c| c.is_ascii_digit()) {
             return Err(AccountIdError::NotOnlyDigits);
         }
 
