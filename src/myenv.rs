@@ -1,40 +1,45 @@
 use std::collections::HashMap;
 use std::env::VarError;
+use std::error::Error;
 use std::ffi::{OsStr, OsString};
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum VarErrorLike {
-    /// The specified environment variable was not present in the current
-    /// process's environment.
-    NotPresent,
-
     /// The specified environment variable was found, but it did not contain
     /// valid unicode data. The found data is returned as a payload of this
     /// variant.
     NotUnicode(OsString),
 }
 
-impl From<VarError> for VarErrorLike {
-    fn from(value: VarError) -> Self {
-        match value {
-            VarError::NotPresent => VarErrorLike::NotPresent,
-            VarError::NotUnicode(x) => VarErrorLike::NotUnicode(x),
+impl Display for VarErrorLike {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VarErrorLike::NotUnicode(os_str) => {
+                write!(f, "environment variable is not valid unicode: {:?}", os_str)
+            }
         }
     }
 }
 
-pub trait EnvLike {
-    fn var<K: AsRef<OsStr>>(&self, key: K) -> Result<String, VarErrorLike>;
+impl Error for VarErrorLike {}
 
-    fn upstream_auth_app(&self) -> String {
-        self.var("ELA_UPSTREAM_AUTH_APP")
-            .unwrap_or_else(|_| "docker-credential-ecr-login".to_string())
+pub trait EnvLike {
+    fn var<K: AsRef<OsStr>>(&self, key: K) -> Option<Result<String, VarErrorLike>>;
+
+    fn upstream_auth_app(&self) -> Result<String, VarErrorLike> {
+        let x = self.var("ELA_UPSTREAM_AUTH_APP");
+        match x {
+            Some(Ok(x)) => Ok(x),
+            Some(err) => err,
+            None => Ok("docker-credential-ecr-login".to_string()),
+        }
     }
-    fn config_key(&self) -> Result<String, VarErrorLike> {
+    fn config_key(&self) -> Option<Result<String, VarErrorLike>> {
         self.var("ELA_ARN_CONFIG_KEY")
     }
 
-    fn forced_profile(&self) -> Result<String, VarErrorLike> {
+    fn forced_profile(&self) -> Option<Result<String, VarErrorLike>> {
         self.var("ELA_FORCED_PROFILE")
     }
 }
@@ -42,23 +47,27 @@ pub trait EnvLike {
 pub struct RealEnv;
 
 impl EnvLike for RealEnv {
-    fn var<K: AsRef<OsStr>>(&self, key: K) -> Result<String, VarErrorLike> {
-        ::std::env::var(key).map_err(VarErrorLike::from)
+    fn var<K: AsRef<OsStr>>(&self, key: K) -> Option<Result<String, VarErrorLike>> {
+        match ::std::env::var(key) {
+            Ok(v) => Some(Ok(v)),
+            Err(e) => match e {
+                VarError::NotPresent => None,
+                VarError::NotUnicode(contents) => Some(Err(VarErrorLike::NotUnicode(contents))),
+            },
+        }
     }
 }
 
 pub struct MockEnv(pub HashMap<String, String>);
 
 impl EnvLike for MockEnv {
-    fn var<K: AsRef<OsStr>>(&self, key: K) -> Result<String, VarErrorLike> {
-        let k = key
-            .as_ref()
-            .to_str()
-            .ok_or_else(|| VarErrorLike::NotUnicode(key.as_ref().to_os_string()))?;
+    fn var<K: AsRef<OsStr>>(&self, key: K) -> Option<Result<String, VarErrorLike>> {
+        let c = key.as_ref().to_str();
+        let k = match c {
+            Some(k) => k,
+            None => return Some(Err(VarErrorLike::NotUnicode(key.as_ref().to_os_string()))),
+        };
 
-        match self.0.get(k) {
-            None => Err(VarErrorLike::NotPresent),
-            Some(x) => Ok(x.clone()),
-        }
+        self.0.get(k).map(|x| Ok(x.clone()))
     }
 }

@@ -44,9 +44,17 @@ pub fn find_aws_profile<V: Write, E: EnvLike>(
     environment: &E,
 ) -> anyhow::Result<Option<String>> {
     if let Some(account_id) = find_expected_account_id(stdin_buffer) {
-        if let Ok(profile) = environment.forced_profile() {
-            writeln!(err, "Using forced profile {}", &profile)?;
-            return Ok(Some(profile));
+        let forced_profile = environment.forced_profile();
+        match forced_profile {
+            Some(Ok(profile)) => {
+                writeln!(err, "Using forced profile {}", &profile)?;
+                return Ok(Some(profile));
+            }
+            Some(Err(e)) => {
+                writeln!(err, "Error reading forced profile: {:?}", e)?;
+                return Err(anyhow::anyhow!(e));
+            }
+            None => {}
         }
 
         if let Some(mut path) = home_dir {
@@ -74,7 +82,8 @@ pub fn delegate<E: EnvLike>(
     aws_profile: Option<String>,
     environment: &E,
 ) -> anyhow::Result<String> {
-    let cmd = environment.upstream_auth_app();
+    let auth_app = environment.upstream_auth_app();
+    let cmd = auth_app.map_err(|e| anyhow::anyhow!(e))?;
     let mut command = Command::new(&cmd);
 
     if let Some(profile) = aws_profile {
@@ -96,11 +105,19 @@ pub fn delegate<E: EnvLike>(
 
 fn match_profile<E: EnvLike>(account_id: AccountID, conf: &Ini, environment: &E) -> Option<String> {
     let cred_proc = Regex::new(&format!(r"arn:aws:iam::{}:role/", account_id)).unwrap();
-    let possible_custom_key = &environment.config_key().ok();
+    let config_key = environment.config_key();
+    let possible_custom_key = match config_key {
+        None => None,
+        Some(Ok(custom_key)) => Some(custom_key),
+        Some(Err(err)) => {
+            eprintln!("Error reading config key: {:?}", err);
+            None
+        }
+    };
 
     for (section_name, section) in conf.iter() {
         for (ini_key, value) in section.iter() {
-            let is_key_found = if let Some(custom_key) = possible_custom_key {
+            let is_key_found = if let Some(custom_key) = &possible_custom_key {
                 // compare with user selected key
                 custom_key == ini_key
             } else {
