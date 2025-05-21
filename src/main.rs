@@ -28,12 +28,12 @@ fn main() -> anyhow::Result<()> {
             &stdin_buffer,
             &mut io::stderr().lock(),
             home_dir(),
-            environment,
+            &environment,
         )?,
         _ => None,
     };
 
-    let answer = delegate(&arguments, &stdin_buffer, aws_profile)?;
+    let answer = delegate(&arguments, &stdin_buffer, aws_profile, &environment)?;
     io::stdout().lock().write_all(answer.as_bytes())?;
 
     Ok(())

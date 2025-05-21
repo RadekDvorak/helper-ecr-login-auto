@@ -50,7 +50,7 @@ fn test_find_aws_profile() {
         "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
         err,
         Some(PathBuf::from(&home_dir.path())),
-        mocked_env,
+        &mocked_env,
     );
 
     assert!(profile.is_ok());
@@ -74,7 +74,7 @@ fn test_predefined_profile() {
 
     let expected_profile_name = "fooo";
     let mocked_env = MockEnv(HashMap::from([(
-        "AWS_PROFILE".to_owned(),
+        "ELA_FORCED_PROFILE".to_owned(),
         expected_profile_name.to_owned(),
     )]));
     let mut err = Vec::new();
@@ -82,7 +82,7 @@ fn test_predefined_profile() {
         "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
         &mut err,
         Some(PathBuf::from(&home_dir.path())),
-        mocked_env,
+        &mocked_env,
     );
 
     assert!(profile.is_ok());
@@ -91,7 +91,7 @@ fn test_predefined_profile() {
     assert_eq!(&ok_profile.unwrap(), expected_profile_name);
 
     let s = str::from_utf8(&err).expect("Stderr output should be UTF-8");
-    assert_eq!(s, "Using the predefined AWS_PROFILE=fooo\n");
+    assert_eq!(s, "Using forced profile fooo\n");
 
     home_dir.close().unwrap();
 }

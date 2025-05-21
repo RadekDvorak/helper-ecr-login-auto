@@ -25,6 +25,18 @@ impl From<VarError> for VarErrorLike {
 
 pub trait EnvLike {
     fn var<K: AsRef<OsStr>>(&self, key: K) -> Result<String, VarErrorLike>;
+
+    fn upstream_auth_app(&self) -> String {
+        self.var("ELA_UPSTREAM_AUTH_APP")
+            .unwrap_or_else(|_| "docker-credential-ecr-login".to_string())
+    }
+    fn config_key(&self) -> Result<String, VarErrorLike> {
+        self.var("ELA_ARN_CONFIG_KEY")
+    }
+
+    fn forced_profile(&self) -> Result<String, VarErrorLike> {
+        self.var("ELA_FORCED_PROFILE")
+    }
 }
 
 pub struct RealEnv;

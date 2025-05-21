@@ -10,10 +10,6 @@ use myenv::EnvLike;
 
 pub mod myenv;
 
-const ECR_LOGIN_APP: &str = "docker-credential-ecr-login";
-const ENV_NAME: &str = "AWS_PROFILE";
-const ARN_CONFIG_KEY: &str = "ARN_CONFIG_KEY";
-
 pub struct AccountID(String);
 
 pub enum AccountIdError {
@@ -45,11 +41,11 @@ pub fn find_aws_profile<V: Write, E: EnvLike>(
     stdin_buffer: &str,
     mut err: V,
     home_dir: Option<PathBuf>,
-    environment: E,
+    environment: &E,
 ) -> anyhow::Result<Option<String>> {
     if let Some(account_id) = find_expected_account_id(stdin_buffer) {
-        if let Ok(profile) = environment.var(ENV_NAME) {
-            writeln!(err, "Using the predefined {}={}", ENV_NAME, &profile)?;
+        if let Ok(profile) = environment.forced_profile() {
+            writeln!(err, "Using forced profile {}", &profile)?;
             return Ok(Some(profile));
         }
 
@@ -59,7 +55,7 @@ pub fn find_aws_profile<V: Write, E: EnvLike>(
             writeln!(err, "Looking for account_id {}", account_id)?;
 
             let conf = Ini::from_file(&path)?;
-            let resolved_profile = match_profile(account_id, &conf, environment).map(str::to_owned);
+            let resolved_profile = match_profile(account_id, &conf, environment);
 
             if let Some(profile) = resolved_profile {
                 writeln!(err, "Found profile {:?}", &profile)?;
@@ -72,15 +68,17 @@ pub fn find_aws_profile<V: Write, E: EnvLike>(
     Ok(None)
 }
 
-pub fn delegate(
+pub fn delegate<E: EnvLike>(
     arguments: &[String],
     stdin_buffer: &str,
     aws_profile: Option<String>,
+    environment: &E,
 ) -> anyhow::Result<String> {
-    let mut command = Command::new(ECR_LOGIN_APP);
+    let cmd = environment.upstream_auth_app();
+    let mut command = Command::new(&cmd);
 
     if let Some(profile) = aws_profile {
-        command.env(ENV_NAME, profile);
+        command.env("AWS_PROFILE", profile); // AWS_PROFILE should override AWS_DEFAULT_PROFILE
     }
 
     command.stdin(Stdio::piped()).args(arguments);
@@ -96,9 +94,9 @@ pub fn delegate(
     Ok(from_utf8(&status.stdout).map(str::to_owned)?)
 }
 
-fn match_profile<E: EnvLike>(account_id: AccountID, conf: &Ini, environment: E) -> Option<&str> {
+fn match_profile<E: EnvLike>(account_id: AccountID, conf: &Ini, environment: &E) -> Option<String> {
     let cred_proc = Regex::new(&format!(r"arn:aws:iam::{}:role/", account_id)).unwrap();
-    let possible_custom_key = &environment.var(ARN_CONFIG_KEY).ok();
+    let possible_custom_key = &environment.config_key().ok();
 
     for (section_name, section) in conf.iter() {
         for (ini_key, value) in section.iter() {
@@ -117,7 +115,7 @@ fn match_profile<E: EnvLike>(account_id: AccountID, conf: &Ini, environment: E) 
                 let trimmed = section_name
                     .strip_prefix("profile ")
                     .unwrap_or(section_name);
-                return Some(trimmed);
+                return Some(trimmed.to_owned());
             }
         }
     }
