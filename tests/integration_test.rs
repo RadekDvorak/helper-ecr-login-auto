@@ -2,6 +2,7 @@ use helper_ecr_login_auto::find_aws_profile;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::str;
 
 use helper_ecr_login_auto::myenv::MockEnv;
 use tempfile::tempdir;
@@ -76,9 +77,10 @@ fn test_predefined_profile() {
         "AWS_PROFILE".to_owned(),
         expected_profile_name.to_owned(),
     )]));
+    let mut err = Vec::new();
     let profile = find_aws_profile(
         "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
-        Vec::new(),
+        &mut err,
         Some(PathBuf::from(&home_dir.path())),
         mocked_env,
     );
@@ -87,6 +89,9 @@ fn test_predefined_profile() {
     let ok_profile = profile.unwrap();
     assert!(ok_profile.is_some());
     assert_eq!(&ok_profile.unwrap(), expected_profile_name);
+
+    let s = str::from_utf8(&err).expect("Stderr output should be UTF-8");
+    assert_eq!(s, "Using the predefined AWS_PROFILE=fooo\n");
 
     home_dir.close().unwrap();
 }

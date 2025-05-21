@@ -24,9 +24,12 @@ fn main() -> anyhow::Result<()> {
 
     let arguments: Vec<String> = args().skip(1).collect();
     let aws_profile = match arguments.first() {
-        Some(v) if v == "get" => {
-            find_aws_profile(&stdin_buffer, &mut io::stderr(), home_dir(), environment)?
-        }
+        Some(v) if v == "get" => find_aws_profile(
+            &stdin_buffer,
+            &mut io::stderr().lock(),
+            home_dir(),
+            environment,
+        )?,
         _ => None,
     };
 
