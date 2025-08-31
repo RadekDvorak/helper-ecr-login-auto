@@ -1,0 +1,38 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch: { }
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release Please (rust)
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run Release Please
+        id: release
+        uses: google-github-actions/release-please-action@e4dc86ba9405554aeba3c6bb2d169500e7d3b4ee # v4.1.1
+        with:
+          release-type: rust
+
+  dispatch-build:
+    name: Dispatch build workflow
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/build-release.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag_name }}
+      upload: true

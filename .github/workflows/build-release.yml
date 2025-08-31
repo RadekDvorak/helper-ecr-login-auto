@@ -1,0 +1,115 @@
+name: build-and-publish-binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (a tag like v1.2.3 or SHA) to build'
+        required: true
+        type: string
+      upload:
+        description: 'Upload artefacts to GitHub Release'
+        required: false
+        default: true
+        type: boolean
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      upload:
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.os_name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            os_name: linux
+          - os: macos-14
+            os_name: macos
+          - os: windows-latest
+            os_name: windows
+    env:
+      BIN_NAME: docker-credential-ecr-login-auto
+      REF: ${{ inputs.ref }}
+      OS_NAME: ${{ matrix.os_name }}
+    steps:
+      - name: Checkout ${{ inputs.ref }}
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          cache-on-failure: true
+
+      - name: Determine target triple
+        shell: bash
+        run: |
+          echo "TARGET=$(rustc -vV | sed -n 's/^host: //p')" >> "$GITHUB_ENV"
+
+      - name: Build release
+        run: cargo build --locked --release
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          tar -C target/release -czf "dist/${BIN_NAME}-${REF}-${TARGET}.tar.gz" "${BIN_NAME}"
+          (cd dist && sha256sum "${BIN_NAME}-${REF}-${TARGET}.tar.gz" > "${BIN_NAME}-${REF}-${TARGET}.tar.gz.sha256")
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist
+          tar -C target/release -czf "dist/${BIN_NAME}-${REF}-${TARGET}.tar.gz" "${BIN_NAME}"
+          (cd dist && shasum -a 256 "${BIN_NAME}-${REF}-${TARGET}.tar.gz" | awk '{print $1 "  " $2}' > "${BIN_NAME}-${REF}-${TARGET}.tar.gz.sha256")
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $archive = "dist/${env:BIN_NAME}-${env:REF}-${env:TARGET}.zip"
+          Compress-Archive -Path "target/release/${env:BIN_NAME}.exe" -DestinationPath $archive
+          $archiveName = "${env:BIN_NAME}-${env:REF}-${env:TARGET}.zip"
+          Get-FileHash -Path $archive -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLower() + "  " + $archiveName } | Out-File -FilePath "$archive.sha256" -Encoding ascii
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ env.BIN_NAME }}-${{ inputs.ref }}-${{ env.TARGET }}
+          path: |
+            dist/*.tar.gz*
+            dist/*.zip*
+          if-no-files-found: error
+
+      - name: Attach artifacts to GitHub Release
+        if: inputs.upload == true
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          tag_name: ${{ inputs.ref }}
+          files: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+            dist/*.zip
+            dist/*.zip.sha256
