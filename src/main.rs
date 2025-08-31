@@ -50,8 +50,8 @@ fn real_main(cli: Configuration) -> Result<ExitStatus, String> {
     delegate(
         &[cli.command.to_string()],
         &stdin_buffer,
-        Stdio::piped(),
-        Stdio::piped(),
+        Stdio::inherit(),
+        Stdio::inherit(),
         aws_profile,
         &cli,
     )
