@@ -1,10 +1,7 @@
+use helper_ecr_login_auto::cli::Configuration;
 use helper_ecr_login_auto::find_aws_profile;
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::str;
-
-use helper_ecr_login_auto::myenv::MockEnv;
 use tempfile::tempdir;
 
 #[test]
@@ -44,13 +41,11 @@ fn test_find_aws_profile() {
     fs::create_dir(&aws_path).unwrap();
     fs::write(config_path, config).unwrap();
 
-    let mocked_env = MockEnv(HashMap::new());
-    let err = Vec::new();
+    let config = Configuration::default();
     let profile = find_aws_profile(
         "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
-        err,
         Some(PathBuf::from(&home_dir.path())),
-        &mocked_env,
+        &config,
     );
 
     assert!(profile.is_ok());
@@ -63,6 +58,8 @@ fn test_find_aws_profile() {
 
 #[test]
 fn test_predefined_profile() {
+    testing_logger::setup();
+
     let home_dir = tempdir().unwrap();
     let aws_path = home_dir.path().join(".aws");
     let config_path = &aws_path.join("config");
@@ -73,16 +70,16 @@ fn test_predefined_profile() {
     fs::write(config_path, config).unwrap();
 
     let expected_profile_name = "fooo";
-    let mocked_env = MockEnv(HashMap::from([(
-        "ELA_FORCED_PROFILE".to_owned(),
-        expected_profile_name.to_owned(),
-    )]));
-    let mut err = Vec::new();
+
+    let config = Configuration {
+        forced_profile: Some(expected_profile_name.to_owned()),
+        ..Default::default()
+    };
+
     let profile = find_aws_profile(
         "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
-        &mut err,
         Some(PathBuf::from(&home_dir.path())),
-        &mocked_env,
+        &config,
     );
 
     assert!(profile.is_ok());
@@ -90,8 +87,11 @@ fn test_predefined_profile() {
     assert!(ok_profile.is_some());
     assert_eq!(&ok_profile.unwrap(), expected_profile_name);
 
-    let s = str::from_utf8(&err).expect("Stderr output should be UTF-8");
-    assert_eq!(s, "Using forced profile fooo\n");
+    testing_logger::validate(|captured_logs| {
+        assert_eq!(captured_logs.len(), 1);
+        assert_eq!(captured_logs[0].body, "Using forced profile fooo");
+        assert_eq!(captured_logs[0].level, log::Level::Info);
+    });
 
     home_dir.close().unwrap();
 }
