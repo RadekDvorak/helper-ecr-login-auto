@@ -12,7 +12,7 @@ pub struct Configuration {
     #[arg(
         long = "ela-log-level",
         env = "ELA_LOG_LEVEL",
-        default_value = "info",
+        default_value = "warn",
         help = "Set the logging level (error, warn, info, debug, trace, off)"
     )]
     pub log_level: String,
@@ -62,7 +62,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             command: Commands::Get,
-            log_level: "info".to_string(),
+            log_level: "warn".to_string(),
             log_style: Auto,
             upstream_auth_app: "docker-credential-ecr-login".to_string(),
             arn_config_key: None,
