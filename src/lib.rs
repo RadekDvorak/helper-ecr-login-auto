@@ -127,7 +127,6 @@ pub fn delegate<T: Into<Stdio>, U: Into<Stdio>>(
     }
 
     command
-        .stdin(Stdio::piped())
         .args(arguments)
         .stdin(Stdio::piped())
         .stdout(stdout)
