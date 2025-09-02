@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/RadekDvorak/helper-ecr-login-auto/compare/v0.3.0...v0.3.1) (2025-09-02)
+
+
+### Bug Fixes
+
+* correct condition for dispatching build workflow in release-please.yml ([#12](https://github.com/RadekDvorak/helper-ecr-login-auto/issues/12)) ([e91e2dc](https://github.com/RadekDvorak/helper-ecr-login-auto/commit/e91e2dc229662151b902e99fd08276f213c09cae))
+
 ## [0.3.0](https://github.com/RadekDvorak/helper-ecr-login-auto/compare/v0.2.2...v0.3.0) (2025-09-02)
 
 
