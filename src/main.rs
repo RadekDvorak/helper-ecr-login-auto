@@ -29,6 +29,7 @@ fn main() -> ExitCode {
 fn real_main(cli: Configuration) -> Result<ExitStatus, String> {
     let mut stdin_buffer = String::new();
     io::stdin()
+        .lock()
         .take(STDIN_READ_LIMIT as u64 + 1)
         .read_to_string(&mut stdin_buffer)
         .map_err(|err| err.to_string())?;
