@@ -19,7 +19,13 @@ fn main() -> ExitCode {
         .init();
 
     match real_main(cli) {
-        Ok(status) => ExitCode::from(status.code().unwrap_or(0) as u8),
+        Ok(status) => match status.code() {
+            Some(code) => ExitCode::from(code as u8),
+            None => {
+                eprintln!("Upstream auth process terminated by signal");
+                ExitCode::from(1)
+            }
+        },
         Err(err) => {
             eprintln!("Error: {}", err);
             ExitCode::from(1)
