@@ -101,6 +101,7 @@ pub fn find_aws_profile(
 pub enum DelegationError {
     IoError(std::io::Error),
     StdInWriteError(std::io::Error),
+    StdInReadError,
 }
 
 impl Display for DelegationError {
@@ -108,6 +109,7 @@ impl Display for DelegationError {
         match self {
             DelegationError::IoError(err) => write!(f, "I/O error: {}", err),
             DelegationError::StdInWriteError(err) => write!(f, "Stdin write error: {}", err),
+            DelegationError::StdInReadError => write!(f, "Cannot read stdin."),
         }
     }
 }
@@ -135,7 +137,7 @@ pub fn delegate<T: Into<Stdio>, U: Into<Stdio>>(
     child
         .stdin
         .as_ref()
-        .unwrap() // stdin is set above, it is always there
+        .ok_or(DelegationError::StdInReadError)?
         .write_all(stdin_buffer.as_bytes())
         .map_err(DelegationError::StdInWriteError)?;
 
@@ -183,4 +185,23 @@ fn find_expected_account_id(stdin: &str) -> Option<AccountID> {
     let first_match = ecr.captures(stdin)?.get(1)?;
 
     AccountID::try_from(first_match.as_str().to_owned()).ok()
+}
+
+// Add comprehensive unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_account_id_validation() {
+        assert!(AccountID::validate("123456789012").is_ok());
+        assert!(matches!(
+            AccountID::validate("12345678901"),
+            Err(AccountIdError::WrongLength)
+        ));
+        assert!(matches!(
+            AccountID::validate("12345678901a"),
+            Err(AccountIdError::NotOnlyDigits)
+        ));
+    }
 }
