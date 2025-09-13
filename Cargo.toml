@@ -1,6 +1,6 @@
 [package]
 name = "helper_ecr_login_auto"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 license = "Apache-2.0"
 
