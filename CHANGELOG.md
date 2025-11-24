@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/RadekDvorak/helper-ecr-login-auto/compare/v0.3.1...v0.4.0) (2025-09-13)
+
+
+### Features
+
+* add SHA256 verification for build artifacts in workflow ([#16](https://github.com/RadekDvorak/helper-ecr-login-auto/issues/16)) ([a3980a1](https://github.com/RadekDvorak/helper-ecr-login-auto/commit/a3980a1875058146d321dcb6072e4828d4616e91))
+* enable buffered reading from stdin with StdinLock ([#14](https://github.com/RadekDvorak/helper-ecr-login-auto/issues/14)) ([6f3e66f](https://github.com/RadekDvorak/helper-ecr-login-auto/commit/6f3e66f03e12cd981b68563e9a04640105e3413d))
+* improve edge case handling ([e5b9481](https://github.com/RadekDvorak/helper-ecr-login-auto/commit/e5b94817e6952c3427dac6bc2eb2781afcd160a6))
+
 ## [0.3.1](https://github.com/RadekDvorak/helper-ecr-login-auto/compare/v0.3.0...v0.3.1) (2025-09-02)
 
 
