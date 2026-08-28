@@ -95,3 +95,75 @@ fn test_predefined_profile() {
 
     home_dir.close().unwrap();
 }
+
+#[test]
+fn test_find_aws_profile_from_sso_account_id() {
+    let home_dir = tempdir().unwrap();
+    let aws_path = home_dir.path().join(".aws");
+    let config_path = &aws_path.join("config");
+
+    let config = r###"
+        [profile foo-prod]
+        region = eu-west-1
+        role_arn = arn:aws:iam::777777777777:role/LegacyRole
+
+        [profile foo-sso]
+        sso_start_url = https://example.awsapps.com/start
+        sso_region = eu-west-1
+        sso_account_id = 888888888888
+        sso_role_name = ReadOnly
+        region = eu-west-1
+    "###;
+
+    fs::create_dir(&aws_path).unwrap();
+    fs::write(config_path, config).unwrap();
+
+    let config = Configuration::default();
+    let profile = find_aws_profile(
+        "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
+        Some(PathBuf::from(&home_dir.path())),
+        &config,
+    );
+
+    assert!(profile.is_ok());
+    let ok_profile = profile.unwrap();
+    assert!(ok_profile.is_some());
+    assert_eq!(&ok_profile.unwrap(), "foo-sso");
+
+    home_dir.close().unwrap();
+}
+
+#[test]
+fn test_sso_match_takes_precedence_over_arn_match() {
+    let home_dir = tempdir().unwrap();
+    let aws_path = home_dir.path().join(".aws");
+    let config_path = &aws_path.join("config");
+
+    let config = r###"
+        [profile arn-first]
+        role_arn = arn:aws:iam::888888888888:role/LegacyRole
+
+        [profile sso-second]
+        sso_start_url = https://example.awsapps.com/start
+        sso_region = eu-west-1
+        sso_account_id = 888888888888
+        sso_role_name = Admin
+    "###;
+
+    fs::create_dir(&aws_path).unwrap();
+    fs::write(config_path, config).unwrap();
+
+    let config = Configuration::default();
+    let profile = find_aws_profile(
+        "888888888888.dkr.ecr.eu-west-1.amazonaws.com",
+        Some(PathBuf::from(&home_dir.path())),
+        &config,
+    );
+
+    assert!(profile.is_ok());
+    let ok_profile = profile.unwrap();
+    assert!(ok_profile.is_some());
+    assert_eq!(&ok_profile.unwrap(), "sso-second");
+
+    home_dir.close().unwrap();
+}

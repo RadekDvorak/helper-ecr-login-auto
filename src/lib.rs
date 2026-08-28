@@ -151,7 +151,22 @@ fn match_profile(
     conf: &Ini,
     possible_custom_key: Option<&str>,
 ) -> Result<Option<String>, ProfileMatchingError> {
+    let account_id_str = account_id.to_string();
     let cred_proc = Regex::new(&format!(r"arn:aws:iam::{}:role/", account_id)).unwrap();
+
+    for (section_name, section) in conf.iter() {
+        let is_sso_match = section
+            .get::<String>("sso_account_id")
+            .is_some_and(|sso_account_id| sso_account_id == account_id_str);
+
+        if is_sso_match {
+            let trimmed = section_name
+                .strip_prefix("profile ")
+                .unwrap_or(section_name);
+
+            return Ok(Some(trimmed.to_owned()));
+        }
+    }
 
     for (section_name, section) in conf.iter() {
         for (ini_key, value) in section.iter() {
