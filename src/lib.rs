@@ -73,7 +73,7 @@ pub fn find_aws_profile(
 ) -> Result<Option<String>, ProfileMatchingError> {
     if let Some(account_id) = find_expected_account_id(stdin_buffer) {
         if let Some(profile) = &config.forced_profile {
-            log::info!("Using forced profile {}", &profile);
+            log::info!("Using forced profile {}", profile);
             return Ok(Some(profile.to_owned()));
         }
 
@@ -87,7 +87,7 @@ pub fn find_aws_profile(
             let resolved_profile = match_profile(account_id, &conf, possible_key)?;
 
             if let Some(profile) = resolved_profile {
-                log::info!("Found profile {:?}", &profile);
+                log::info!("Found profile {}", profile);
 
                 return Ok(Some(profile));
             };
