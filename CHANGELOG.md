@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/RadekDvorak/helper-ecr-login-auto/compare/v0.4.0...v0.5.0) (2026-08-28)
+
+
+### Features
+
+* support sso profile matching ([#18](https://github.com/RadekDvorak/helper-ecr-login-auto/issues/18)) ([6f062a9](https://github.com/RadekDvorak/helper-ecr-login-auto/commit/6f062a90f5385f9a0e25a8ccbfe653e0ac3ac43a))
+
 ## [0.4.0](https://github.com/RadekDvorak/helper-ecr-login-auto/compare/v0.3.1...v0.4.0) (2025-09-13)
 
 
